@@ -16,7 +16,7 @@ var uber = new Uber({
   sandbox: true
 });
 
-// introducing the UVER HQ port
+// introducing the Uber HQ port
 app.listen(1455, function() {
   console.log('<Take Me Home Now!> listening on port 1455 ...');
 });
