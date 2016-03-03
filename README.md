@@ -1,5 +1,5 @@
 # Take-Me-Home-Now
-One button UberX pickup with accurate arrival time &amp; price estimation for desktop.
+Gender-aware one button UberX pickup with accurate arrival time &amp; price estimation for desktop.
 
 ## Early release!
 Please be aware that this is a very early release. No tests yet (and probably some bugs), no detailed exception handling and limited scope of functionality (e.g. only UberX requests).
