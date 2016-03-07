@@ -14,6 +14,9 @@ Please be aware that this is a very early release. No tests yet (and probably so
 - [x] Gender analysis for user and rider based on profile picture (thanks to [Face++](https://market.mashape.com/faceplusplus/faceplusplus-face-detection)) and name (thanks to [gender](https://www.npmjs.com/package/gender))
 - [x] Adaptive UI based on the gender of Uber user
 
+# Backlog
+- [ ] Use the API to create an (iOS Today Extension)[https://www.raywenderlich.com/83809/ios-8-today-extension-tutorial]. Just like the Waze extenstion, with buttons for predefined places
+
 # Installation
 As usual, run this first:
 ```
