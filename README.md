@@ -16,6 +16,9 @@ Please be aware that this is a very early release. No tests yet (and probably so
 
 # Backlog
 - [ ] Use the API to create an [iOS Today Extension](https://www.raywenderlich.com/83809/ios-8-today-extension-tutorial). Just like the Waze extenstion, with buttons for predefined places
+- [ ] Add other Uber products
+- [ ] Extend Face++ itegration. For instance, when multiple faces are recognized, identify and select the most prominent one
+- [ ] Improve UI to show more information about ongoing requests. Requires access to production API or manual infusion of data into the Sandbox responses (e.g. different drivers, cars, ETA)
 
 # Installation
 As usual, run this first:
