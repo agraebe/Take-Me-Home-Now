@@ -15,9 +15,9 @@ Please be aware that this is a very early release. No tests yet (and probably so
 - [x] Adaptive UI based on the gender of Uber user
 
 # Backlog
-- [ ] Use the API to create an [iOS Today Extension](https://www.raywenderlich.com/83809/ios-8-today-extension-tutorial). Just like the Waze extenstion, with buttons for predefined places
+- [ ] Use the API to create an [iOS Today Extension](https://www.raywenderlich.com/83809/ios-8-today-extension-tutorial). Just like the Waze extension, with buttons for predefined places
 - [ ] Add other Uber products
-- [ ] Extend Face++ itegration. For instance, when multiple faces are recognized, identify and select the most prominent one
+- [ ] Extend Face++ integration. For instance, when multiple faces are recognized, identify and select the most prominent one
 - [ ] Improve UI to show more information about ongoing requests. Requires access to production API or manual infusion of data into the Sandbox responses (e.g. different drivers, cars, ETA)
 
 # Installation
@@ -32,7 +32,9 @@ Stay tuned for an updated version!
 
 Then, start the server from the root dir with the following command:
 ```
-node app.js
+client_id=[1] client_secret=[2] server_token=[3] redirect_uri=[4] mashape_key=[5] node app.js
 ```
+
+*Keep in mind that you HAVE to replace [x] with your own credentials!*
 
 After that, you can access the web app by opening ``http://localhost:1455/``.

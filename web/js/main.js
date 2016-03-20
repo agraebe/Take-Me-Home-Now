@@ -143,6 +143,15 @@ $(function() {
     });
   }
 
+  function getPaymentMethods() {
+    $.ajax({
+        url: '/api/payment-methods'
+      })
+      .done(function(msg) {
+        console.log(msg);
+      });
+  }
+
   // get current ride status
   function getCurrentRide() {
     $.ajax({

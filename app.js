@@ -1,3 +1,4 @@
+var config = require('./config');
 var express = require('express');
 var url = require('url');
 var Uber = require('node-uber');
@@ -6,19 +7,17 @@ var gender = require('gender');
 var request = require('request');
 
 var app = express();
-//TODO: Replace CLIENTID, CLIENTSECRET and SERVERTOKEN with your own
 var uber = new Uber({
-  client_id: 'CLIENTID',
-  client_secret: 'CLIENTSECRET',
-  server_token: 'SERVERTOKEN',
-  redirect_uri: 'http://localhost:1455/api/callback',
-  name: 'Take Me Home Now!',
-  sandbox: true
+  client_id: config.uber.client_id,
+  client_secret: config.uber.client_secret,
+  server_token: config.uber.server_token,
+  redirect_uri: config.uber.redirect_uri,
+  name: config.express.app_name,
+  sandbox: config.uber.sandbox
 });
 
-// introducing the Uber HQ port
-app.listen(1455, function() {
-  console.log('<Take Me Home Now!> listening on port 1455 ...');
+app.listen(config.express.port, function() {
+  console.log(config.express.app_name + ' listening on port ' + config.express.port + ' ...');
 });
 
 // diable view engine for static content delivery
@@ -35,7 +34,7 @@ app.get('/', function(req, res) {
 
 // login with uber credentials
 app.get('/api/login', function(request, response) {
-  var url = uber.getAuthorizeUrl(['history', 'profile', 'places', 'request']);
+  var url = uber.getAuthorizeUrl(config.uber.scopes);
   response.redirect(url);
 });
 
@@ -53,10 +52,13 @@ app.get('/api/callback', function(request, response) {
     });
 });
 
+app.get('/api/payment-methods', function(request, response) {
+  getPaymentMethods(response);
+});
+
 // get all uber products for location
 app.get('/api/products', function(request, response) {
-  var url_parts = url.parse(request.url, true);
-  var query = url_parts.query;
+  var query = url.parse(request.url, true).query;
 
   // if no query params sent, respond with Bad Request
   if (!query || !query.lat || !query.lng) {
@@ -68,8 +70,7 @@ app.get('/api/products', function(request, response) {
 
 // create a new ride request to home place
 app.get('/api/requests/new/home', function(request, response) {
-  var url_parts = url.parse(request.url, true);
-  var query = url_parts.query;
+  var query = url.parse(request.url, true).query;
 
   // if no query params sent, respond with Bad Request
   if (!query || !query.lat || !query.lng || !query.product_id) {
@@ -81,8 +82,8 @@ app.get('/api/requests/new/home', function(request, response) {
 
 // get uber user profile
 app.get('/api/user/profile', function(request, response) {
-  var url_parts = url.parse(request.url, true);
-  var query = url_parts.query;
+  var query = url.parse(request.url, true).query;
+
   getUberProfile(query.access_token, response);
 });
 
@@ -93,8 +94,7 @@ app.get('/api/requests/current', function(request, response) {
 
 // get complete estimate for price and arrival time for home place
 app.get('/api/estimate/home', function(request, response) {
-  var url_parts = url.parse(request.url, true);
-  var query = url_parts.query;
+  var query = url.parse(request.url, true).query;
 
   // if no query params sent, respond with Bad Request
   if (!query || !query.lat || !query.lng) {
@@ -183,6 +183,18 @@ function getCurrentRequest(response) {
     });
 }
 
+function getPaymentMethods(response) {
+  uber.payment.methods(
+    function(err, res) {
+      if (err) {
+        console.error(err);
+        return;
+      }
+
+      response.send(res);
+    });
+}
+
 function createNewRequestHome(lat, lon, product_id, response) {
   uber.requests.requestRide({
     start_latitude: lat,
@@ -265,35 +277,43 @@ function identifyGenderAndRespond(res, response) {
 
   // analyze the profile picture
   unirest.get('https://faceplusplus-faceplusplus.p.mashape.com/detection/detect?attribute=gender&url=' + pictureUrl)
-    //TODO: Replace MASHAPEKEY with your own
-    .header('X-Mashape-Key', 'MASHAPEKEY')
+    .header('X-Mashape-Key', config.mashape.key)
     .header('Accept', 'application/json')
     .end(function(result) {
       // analyze the profile name
       genderGuess = gender.guess(firstName);
       genderGuessConfidence = genderGuess.confidence * 100;
-      imageGuess = result.body.face[0].attribute.gender.value.toLowerCase();
-      imageGuessConfidence = result.body.face[0].attribute.gender.confidence;
 
-      // if name has a useful result, combine
-      if (genderGuess.gender !== 'unknown' && genderGuessConfidence && genderGuessConfidence > 50) {
-        if (genderGuess.gender === imageGuess) {
-          // picture and name hint to same gender
-          outputGender = imageGuess;
-          // combined confidence
-          outputConfidence = (imageGuessConfidence + genderGuessConfidence) / 2;
-        } else {
-          // if picture and name have conflicting gender, take the one that is more confident
-          if (genderGuess.confidence >= imageGuessConfidence) {
-            outputGender = genderGuess.gender;
-            outputConfidence = genderGuess.confidence;
-          } else {
+
+      if (result.body.face.length > 0) {
+        imageGuess = result.body.face[0].attribute.gender.value.toLowerCase();
+        imageGuessConfidence = result.body.face[0].attribute.gender.confidence;
+
+        // if name has a useful result, combine
+        if (genderGuess.gender !== 'unknown' && genderGuessConfidence && genderGuessConfidence > 50) {
+          if (genderGuess.gender === imageGuess) {
+            // picture and name hint to same gender
             outputGender = imageGuess;
-            outputConfidence = imageGuessConfidence;
-          }
+            // combined confidence
+            outputConfidence = (imageGuessConfidence + genderGuessConfidence) / 2;
+          } else {
+            // if picture and name have conflicting gender, take the one that is more confident
+            if (genderGuess.confidence >= imageGuessConfidence) {
+              outputGender = genderGuess.gender;
+              outputConfidence = genderGuess.confidence;
+            } else {
+              outputGender = imageGuess;
+              outputConfidence = imageGuessConfidence;
+            }
 
+          }
         }
+      } else {
+        // take the genderguess as fallback
+        outputGender = genderGuess.gender;
+        outputConfidence = genderGuess.confidence;
       }
+
 
       // append new gender attributes to response
       if (res.driver) {
