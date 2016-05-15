@@ -159,7 +159,7 @@ function getCompleteHomeEstimate(lat, lng, response) {
 }
 
 function getCurrentRequest(response) {
-  uber.requests.getCurrentRide(
+  uber.requests.getCurrent(
     function(err, res) {
       if (err) {
         console.error(err);
@@ -211,7 +211,8 @@ function createNewRequestHome(lat, lon, product_id, response) {
 
 function acceptRequest(request_id) {
   console.log('Accepting request ' + request_id + ' now ...');
-  uber.requests.setRequestStatus({
+  /*
+  uber.requests.updateCurrent({
     status: 'accepted',
     request_id: request_id
   }, function(err, res) {
@@ -220,6 +221,7 @@ function acceptRequest(request_id) {
       return;
     }
   });
+  */
 }
 
 function getUberProducts(lat, lon, response) {
