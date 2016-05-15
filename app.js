@@ -106,7 +106,7 @@ app.get('/api/estimate/home', function(request, response) {
 
 function getCompleteHomeEstimate(lat, lng, response) {
   // get home address from profile
-  uber.places.home(function(err, res) {
+  uber.places.getHome(function(err, res) {
     if (err) {
       console.error(err);
       return;
@@ -128,22 +128,15 @@ function getCompleteHomeEstimate(lat, lng, response) {
       var jsonResult = JSON.parse(res2.body);
 
       // estimate price to get home
-      uber.estimates.price({
-        start_latitude: lat,
-        start_longitude: lng,
-        end_latitude: jsonResult.results[0].geometry.location.lat,
-        end_longitude: jsonResult.results[0].geometry.location.lng,
-      }, function(err3, res3) {
+      uber.estimates.getPriceForRoute(lat, lng, jsonResult.results[0].geometry.location.lat,
+        jsonResult.results[0].geometry.location.lng, function(err3, res3) {
         if (err3) {
           console.error(err3);
           return;
         }
 
         // to get a complete trip time, add time estimate for driver to arrive
-        uber.estimates.time({
-          start_latitude: lat,
-          start_longitude: lng
-        }, function(err4, res4) {
+        uber.estimates.getETAForLocation(lat, lng, function(err4, res4) {
           if (err4) {
             console.error(err4);
             return;
@@ -196,7 +189,7 @@ function getPaymentMethods(response) {
 }
 
 function createNewRequestHome(lat, lon, product_id, response) {
-  uber.requests.requestRide({
+  uber.requests.create({
     start_latitude: lat,
     start_longitude: lon,
     product_id: product_id,
@@ -204,14 +197,15 @@ function createNewRequestHome(lat, lon, product_id, response) {
   }, function(err, res) {
     if (err) {
       console.error(err);
-      return;
-    }
-    response.send(res);
+      response.sendStatus(500);
+    } else {
+      response.send(res);
 
-    // accept the ride automatically after 3 secs
-    setTimeout(function() {
-      acceptRequest(res.request_id);
-    }, 3000);
+      // accept the ride automatically after 3 secs
+      setTimeout(function() {
+        acceptRequest(res.request_id);
+      }, 3000);
+    }
   });
 }
 
@@ -229,10 +223,7 @@ function acceptRequest(request_id) {
 }
 
 function getUberProducts(lat, lon, response) {
-  uber.products.list({
-    latitude: lat,
-    longitude: lon
-  }, function(err, res) {
+  uber.products.getAllForLocation(lat, lon, function(err, res) {
     if (err) {
       console.error(err);
       return;
@@ -247,7 +238,7 @@ function getUberProfile(access_token, response) {
     // ensure user is authorized
     response.sendStatus(401);
   } else {
-    uber.user.profile(access_token, function(err, res) {
+    uber.user.getProfile(access_token, function(err, res) {
       if (err) {
         console.log(err);
         return;

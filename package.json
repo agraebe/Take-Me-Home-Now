@@ -1,6 +1,6 @@
 {
-  "name": "Take Me Home Now!",
-  "version": "0.0.1",
+  "name": "Take-Me-Home-Now",
+  "version": "1.0.1",
   "author": "Alexander Graebe <alex.graebe@gmail.com>",
   "description": "One button pickup with accurate arrival time & price estimation for desktop",
   "main": "app.js",
@@ -11,7 +11,7 @@
   "dependencies": {
     "express": "^4.13.4",
     "gender": "0.0.1",
-    "node-uber": "0.0.7",
+    "node-uber": "0.9.2",
     "request": "^2.69.0",
     "uber-api": "^0.3.3",
     "unirest": "^0.4.2"
