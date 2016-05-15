@@ -1,6 +1,6 @@
 {
   "name": "Take-Me-Home-Now",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "Alexander Graebe <alex.graebe@gmail.com>",
   "description": "One button pickup with accurate arrival time & price estimation for desktop",
   "main": "app.js",
