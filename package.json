@@ -1,19 +1,27 @@
 {
   "name": "Take-Me-Home-Now",
+  "repository": "https://github.com/agraebe/Take-Me-Home-Now",
   "version": "1.0.2",
   "author": "Alexander Graebe <alex.graebe@gmail.com>",
   "description": "One button pickup with accurate arrival time & price estimation for desktop",
+  "keywords": ["node-uber", "uber-api", "uber", "mashape"],
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "test": "swagger project test"
   },
   "license": "MIT",
   "dependencies": {
     "express": "^4.13.4",
     "gender": "0.0.1",
-    "node-uber": "0.9.2",
+    "node-uber": "^0.9.5",
     "request": "^2.69.0",
+    "swagger-express-mw": "^0.1.0",
     "uber-api": "^0.3.3",
     "unirest": "^0.4.2"
+  },
+  "devDependencies": {
+    "should": "^7.1.0",
+    "supertest": "^1.0.0"
   }
 }

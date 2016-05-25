@@ -52,10 +52,6 @@ app.get('/api/callback', function(request, response) {
         });
 });
 
-app.get('/api/payment-methods', function(request, response) {
-    getPaymentMethods(response);
-});
-
 // get all uber products for location
 app.get('/api/products', function(request, response) {
     var query = url.parse(request.url, true).query;
@@ -84,7 +80,7 @@ app.get('/api/requests/new/home', function(request, response) {
 app.get('/api/user/profile', function(request, response) {
     var query = url.parse(request.url, true).query;
 
-    getUberProfile(query.access_token, response);
+    getUberProfile(response);
 });
 
 // get current request status
@@ -177,18 +173,6 @@ function getCurrentRequest(response) {
         });
 }
 
-function getPaymentMethods(response) {
-    uber.payment.methods(
-        function(err, res) {
-            if (err) {
-                console.error(err);
-                return;
-            }
-
-            response.send(res);
-        });
-}
-
 function createNewRequestHome(lat, lon, product_id, response) {
     uber.requests.create({
         start_latitude: lat,
@@ -228,30 +212,35 @@ function getUberProducts(lat, lon, response) {
             console.error(err);
             return;
         }
-
         response.send(res);
+
+        // simulate surge multiplier
+        setSurgeMultiplierForUberX(res.products[0].product_id, 1.0);
     });
 }
 
-function getUberProfile(access_token, response) {
-    if (!access_token || access_token === '') {
-        // ensure user is authorized
-        response.sendStatus(401);
-    } else {
-        uber.user.getProfile(access_token, function(err, res) {
-            if (err) {
-                console.log(err);
-                return;
-            }
+function setSurgeMultiplierForUberX(product_id, multiplier) {
+    uber.products.setSurgeMultiplierByID(product_id, multiplier, function(err, res) {
+        if (err) console.error(err);
+        else console.log(res);
+    });
+}
 
-            if (res.picture && res.picture !== '') {
-                identifyGenderAndRespond(res, response);
-            } else {
-                // just in case there is no image
-                response.sendStatus(400);
-            }
-        });
-    }
+function getUberProfile(response) {
+    uber.user.getProfile(function(err, res) {
+        if (err) {
+            console.log(err);
+            return;
+        }
+
+        if (res.picture && res.picture !== '') {
+            identifyGenderAndRespond(res, response);
+        } else {
+            // just in case there is no image
+            response.sendStatus(400);
+        }
+    });
+
 }
 
 function identifyGenderAndRespond(res, response) {
