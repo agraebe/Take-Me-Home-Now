@@ -26,13 +26,9 @@ As usual, run this first:
 npm install
 ```
 
-## Installation issues
-Right now, you will have trouble with a clean slate installation because the project uses a modified version of [node-uber](https://github.com/shernshiou/node-uber). The changes made were proposed in this [pull request](https://github.com/shernshiou/node-uber/pull/13).
-Stay tuned for an updated version!
-
 Then, start the server from the root dir with the following command:
 ```
-client_id=[1] client_secret=[2] server_token=[3] redirect_uri=[4] mashape_key=[5] node app.js
+client_id=[1] client_secret=[2] server_token=[3] redirect_uri=[4] mashape_key=[5] nodemon app.js
 ```
 
 *Keep in mind that you HAVE to replace [x] with your own credentials!*

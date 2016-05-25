@@ -7,6 +7,8 @@ $(function() {
 
   // if token available, load user info
   if (access_token && !user) {
+
+    // load profile
     loadUserProfile();
   }
 
@@ -141,15 +143,6 @@ $(function() {
       title: 'You are here',
       map: map
     });
-  }
-
-  function getPaymentMethods() {
-    $.ajax({
-        url: '/api/payment-methods'
-      })
-      .done(function(msg) {
-        console.log(msg);
-      });
   }
 
   // get current ride status

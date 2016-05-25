@@ -4,10 +4,15 @@
   "version": "1.0.2",
   "author": "Alexander Graebe <alex.graebe@gmail.com>",
   "description": "One button pickup with accurate arrival time & price estimation for desktop",
-  "keywords": ["node-uber", "uber-api", "uber", "mashape"],
+  "keywords": [
+    "node-uber",
+    "uber-api",
+    "uber",
+    "mashape"
+  ],
   "main": "app.js",
   "scripts": {
-    "start": "node app.js",
+    "start": "nodemon app.js",
     "test": "swagger project test"
   },
   "license": "MIT",
@@ -21,6 +26,8 @@
     "unirest": "^0.4.2"
   },
   "devDependencies": {
+    "bluebird": "^3.4.0",
+    "nodemon": "^1.9.2",
     "should": "^7.1.0",
     "supertest": "^1.0.0"
   }

@@ -4,6 +4,7 @@ var url = require('url');
 var Uber = require('node-uber');
 var unirest = require('unirest');
 var gender = require('gender');
+var Promise = require('bluebird');
 var request = require('request');
 
 var app = express();
@@ -40,16 +41,11 @@ app.get('/api/login', function(request, response) {
 
 // process callback and redirect with access_token
 app.get('/api/callback', function(request, response) {
-    uber.authorization({
-            authorization_code: request.query.code
-        },
-        function(err, access_token, refresh_token) {
-            if (err) {
-                console.error(err);
-                return;
-            }
-            response.redirect('/index.html?access_token=' + access_token);
-        });
+    uber.authorizationAsync({
+        authorization_code: request.query.code
+    }).then(function(res) {
+        response.redirect('/index.html?access_token=' + res);
+    });
 });
 
 // get all uber products for location
@@ -102,12 +98,7 @@ app.get('/api/estimate/home', function(request, response) {
 
 function getCompleteHomeEstimate(lat, lng, response) {
     // get home address from profile
-    uber.places.getHome(function(err, res) {
-        if (err) {
-            console.error(err);
-            return;
-        }
-
+    uber.places.getHomeAsync().then(function(res) {
         var homeAddress = res.address;
         // use the GMaps API to get lat and lng coordinates for location
         var geoCodeURL = 'http://maps.googleapis.com/maps/api/geocode/json?address=' + encodeURIComponent(homeAddress) + '&sensor=false';
@@ -124,115 +115,74 @@ function getCompleteHomeEstimate(lat, lng, response) {
             var jsonResult = JSON.parse(res2.body);
 
             // estimate price to get home
-            uber.estimates.getPriceForRoute(lat, lng, jsonResult.results[0].geometry.location.lat,
-                jsonResult.results[0].geometry.location.lng,
-                function(err3, res3) {
-                    if (err3) {
-                        console.error(err3);
-                        return;
-                    }
-
-                    // to get a complete trip time, add time estimate for driver to arrive
-                    uber.estimates.getETAForLocation(lat, lng, function(err4, res4) {
-                        if (err4) {
-                            console.error(err4);
-                            return;
-                        }
-
-                        // add to existing time estimates
-                        res3.prices.forEach(function(price) {
-                            res4.times.forEach(function(time) {
-                                if (price.product_id === time.product_id) {
-                                    price.duration += time.estimate;
-                                }
-                            });
+            uber.estimates.getPriceForRouteAsync(lat, lng, jsonResult.results[0].geometry.location.lat,
+                jsonResult.results[0].geometry.location.lng).then(function(res3) {
+                // to get a complete trip time, add time estimate for driver to arrive
+                uber.estimates.getETAForLocationAsync(lat, lng).then(function(res4) {
+                    // add to existing time estimates
+                    res3.prices.forEach(function(price) {
+                        res4.times.forEach(function(time) {
+                            if (price.product_id === time.product_id) {
+                                price.duration += time.estimate;
+                            }
                         });
-
-                        response.send(res3);
                     });
+
+                    response.send(res3);
                 });
+            });
         });
     });
 }
 
 function getCurrentRequest(response) {
-    uber.requests.getCurrent(
-        function(err, res) {
-            if (err) {
-                console.error(err);
-                return;
-            }
-
-            // if ride is accepted, check for gender
-            if (res.status === 'accepted') {
-                // randomize driver data first
-                identifyGenderAndRespond(res, response);
-            } else {
-                response.send(res);
-            }
-        });
+    uber.requests.getCurrentAsync().then(function(res) {
+        // if ride is accepted, check for gender
+        if (res.status === 'accepted') {
+            // randomize driver data first
+            identifyGenderAndRespond(res, response);
+        } else {
+            response.send(res);
+        }
+    });
 }
 
 function createNewRequestHome(lat, lon, product_id, response) {
-    uber.requests.create({
+    uber.requests.createAsync({
         start_latitude: lat,
         start_longitude: lon,
         product_id: product_id,
         end_place_id: 'home'
-    }, function(err, res) {
-        if (err) {
-            console.error(err);
-            response.sendStatus(500);
-        } else {
-            response.send(res);
+    }).then(function(res) {
+        response.send(res);
 
-            // accept the ride automatically after 3 secs
-            setTimeout(function() {
-                acceptRequest(res.request_id);
-            }, 3000);
-        }
+        // accept the ride automatically after 3 secs
+        setTimeout(function() {
+            acceptRequest(res.request_id);
+        }, 3000);
+    }).catch(function(err) {
+        response.sendStatus(500);
     });
 }
 
 function acceptRequest(request_id) {
-    console.log('Accepting request ' + request_id + ' now ...');
-
-    uber.requests.setStatusByID(request_id, 'accepted', function(err, res) {
-        if (err) {
-            console.error(err);
-            return;
-        }
-    });
-
+    uber.requests.setStatusByIDAsync(request_id, 'accepted');
 }
 
 function getUberProducts(lat, lon, response) {
-    uber.products.getAllForLocation(lat, lon, function(err, res) {
-        if (err) {
-            console.error(err);
-            return;
-        }
+    uber.products.getAllForLocationAsync(lat, lon).then(function(res) {
         response.send(res);
-
         // simulate surge multiplier
         setSurgeMultiplierForUberX(res.products[0].product_id, 1.0);
     });
 }
 
 function setSurgeMultiplierForUberX(product_id, multiplier) {
-    uber.products.setSurgeMultiplierByID(product_id, multiplier, function(err, res) {
-        if (err) console.error(err);
-        else console.log(res);
-    });
+    uber.products.setSurgeMultiplierByIDAsync(product_id, multiplier);
 }
 
 function getUberProfile(response) {
-    uber.user.getProfile(function(err, res) {
-        if (err) {
-            console.log(err);
-            return;
-        }
-
+    uber.user.getProfileAsync().then(function(res) {
         if (res.picture && res.picture !== '') {
             identifyGenderAndRespond(res, response);
         } else {
@@ -240,7 +190,6 @@ function getUberProfile(response) {
             response.sendStatus(400);
         }
     });
-
 }
 
 function identifyGenderAndRespond(res, response) {
