@@ -35,16 +35,15 @@ app.get('/', function(req, res) {
 
 // login with uber credentials
 app.get('/api/login', function(request, response) {
-    var url = uber.getAuthorizeUrl(config.uber.scopes);
-    response.redirect(url);
+    response.redirect(uber.getAuthorizeUrl(config.uber.scopes));
 });
 
 // process callback and redirect with access_token
 app.get('/api/callback', function(request, response) {
     uber.authorizationAsync({
         authorization_code: request.query.code
-    }).then(function(res) {
-        response.redirect('/index.html?access_token=' + res);
+    }).spread(function(access_token, refresh_token) {
+        response.redirect('/index.html?access_token=' + access_token);
     });
 });
 
@@ -96,73 +95,116 @@ app.get('/api/estimate/home', function(request, response) {
     }
 });
 
+// experimental
+app.get('/receipt', function(request, response) {
+    getReceiptForLastRide(response);
+});
+
+function getReceiptForLastRide(response) {
+    uber.requests.getReceiptByIDAync('00f2d60a-5ca9-4a16-9e15-f3fdc7ece64c').then(function(res) {
+        response.send(res);
+    });
+};
+
+app.get('/complete', function(request, response) {
+    getCompleteRide(response);
+});
+
+function getCompleteRide(response) {
+    uber.requests.setStatusByIDAync('00f2d60a-5ca9-4a16-9e15-f3fdc7ece64c', 'completed').then(function(res) {
+        response.send(res);
+    });
+};
+
+app.get('/map', function(request, response) {
+    getCompleteRide(response);
+});
+
+function getCompleteRide(response) {
+    uber.requests.getMapByIDAync('00f2d60a-5ca9-4a16-9e15-f3fdc7ece64c').then(function(res) {
+        if (err) {
+            console.log(err);
+            response.send(err);
+        }
+        console.log(err);
+        response.send(res);
+    });
+};
+
 function getCompleteHomeEstimate(lat, lng, response) {
+    var prices, geoCodeURL;
     // get home address from profile
-    uber.places.getHomeAsync().then(function(res) {
-        var homeAddress = res.address;
-        // use the GMaps API to get lat and lng coordinates for location
-        var geoCodeURL = 'http://maps.googleapis.com/maps/api/geocode/json?address=' + encodeURIComponent(homeAddress) + '&sensor=false';
+    uber.places.getHomeAsync()
+        .then(function(res) {
+            // use the GMaps API to get lat and lng coordinates for location
+            geoCodeURL = 'http://maps.googleapis.com/maps/api/geocode/json?address=' + encodeURIComponent(res.address) + '&sensor=false';
 
-        request({
-            method: 'GET',
-            uri: geoCodeURL,
-        }, function(err2, res2) {
-            if (err2) {
-                console.error(err2);
-                return;
-            }
+            request({
+                method: 'GET',
+                uri: geoCodeURL,
+            }, function(err2, res2) {
+                if (err2) {
+                    console.error(err2);
+                    return;
+                }
 
-            var jsonResult = JSON.parse(res2.body);
+                var jsonResult = JSON.parse(res2.body);
 
-            // estimate price to get home
-            uber.estimates.getPriceForRouteAsync(lat, lng, jsonResult.results[0].geometry.location.lat,
-                jsonResult.results[0].geometry.location.lng).then(function(res3) {
-                // to get a complete trip time, add time estimate for driver to arrive
-                uber.estimates.getETAForLocationAsync(lat, lng).then(function(res4) {
-                    // add to existing time estimates
-                    res3.prices.forEach(function(price) {
-                        res4.times.forEach(function(time) {
-                            if (price.product_id === time.product_id) {
-                                price.duration += time.estimate;
-                            }
+                // estimate price to get home
+                uber.estimates.getPriceForRouteAsync(lat, lng, jsonResult.results[0].geometry.location.lat,
+                        jsonResult.results[0].geometry.location.lng)
+                    .then(function(pr) {
+                        prices = pr;
+                        // to get a complete trip time, add time estimate for driver to arrive
+                        return uber.estimates.getETAForLocationAsync(lat, lng);
+                    })
+                    .then(function(etas) {
+                        // add to existing time estimates
+                        prices.prices.forEach(function(price) {
+                            etas.times.forEach(function(time) {
+                                if (price.product_id === time.product_id) {
+                                    price.duration += time.estimate;
+                                }
+                            });
                         });
-                    });
 
-                    response.send(res3);
-                });
+                        response.send(prices);
+                    });
             });
         });
-    });
 }
 
 function getCurrentRequest(response) {
-    uber.requests.getCurrentAsync().then(function(res) {
-        // if ride is accepted, check for gender
-        if (res.status === 'accepted') {
-            // randomize driver data first
-            identifyGenderAndRespond(res, response);
-        } else {
-            response.send(res);
-        }
-    });
+    uber.requests.getCurrentAsync()
+        .then(function(res) {
+            // if ride is accepted, check for gender
+            if (res.status === 'accepted') {
+                // randomize driver data first
+                identifyGenderAndRespond(res, response);
+            } else {
+                response.send(res);
+            }
+        });
 }
 
 function createNewRequestHome(lat, lon, product_id, response) {
     uber.requests.createAsync({
-        start_latitude: lat,
-        start_longitude: lon,
-        product_id: product_id,
-        end_place_id: 'home'
-    }).then(function(res) {
-        response.send(res);
+            start_latitude: lat,
+            start_longitude: lon,
+            product_id: product_id,
+            end_place_id: 'home'
+        })
+        .then(function(res) {
+            response.send(res);
 
-        // accept the ride automatically after 3 secs
-        setTimeout(function() {
-            acceptRequest(res.request_id);
-        }, 3000);
-    }).catch(function(err) {
-        response.sendStatus(500);
-    });
+            // accept the ride automatically after 3 secs
+            setTimeout(function() {
+                acceptRequest(res.request_id);
+            }, 3000);
+        })
+        .error(function(err) {
+            response.sendStatus(500);
+        });
 }
 
 function acceptRequest(request_id) {
@@ -170,11 +212,12 @@ function acceptRequest(request_id) {
 }
 
 function getUberProducts(lat, lon, response) {
-    uber.products.getAllForLocationAsync(lat, lon).then(function(res) {
-        response.send(res);
-        // simulate surge multiplier
-        setSurgeMultiplierForUberX(res.products[0].product_id, 1.0);
-    });
+    uber.products.getAllForLocationAsync(lat, lon)
+        .then(function(res) {
+            response.send(res);
+            // simulate surge multiplier
+            setSurgeMultiplierForUberX(res.products[0].product_id, 1.0);
+        });
 }
 
 function setSurgeMultiplierForUberX(product_id, multiplier) {
@@ -182,14 +225,15 @@ function setSurgeMultiplierForUberX(product_id, multiplier) {
 }
 
 function getUberProfile(response) {
-    uber.user.getProfileAsync().then(function(res) {
-        if (res.picture && res.picture !== '') {
-            identifyGenderAndRespond(res, response);
-        } else {
-            // just in case there is no image
-            response.sendStatus(400);
-        }
-    });
+    uber.user.getProfileAsync()
+        .then(function(res) {
+            if (res.picture && res.picture !== '') {
+                identifyGenderAndRespond(res, response);
+            } else {
+                // just in case there is no image
+                response.sendStatus(400);
+            }
+        });
 }
 
 function identifyGenderAndRespond(res, response) {
